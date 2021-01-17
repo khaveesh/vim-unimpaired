@@ -257,12 +257,6 @@ call s:map('n', '[p', '<Plug>unimpairedPutAbove')
 call s:map('n', ']p', '<Plug>unimpairedPutBelow')
 call s:map('n', '[P', '<Plug>unimpairedPutAbove')
 call s:map('n', ']P', '<Plug>unimpairedPutBelow')
-call s:map('n', '>P', ":<C-U>call <SID>putline(v:count1 . '[p', 'Above')<CR>>']", '<silent>')
-call s:map('n', '>p', ":<C-U>call <SID>putline(v:count1 . ']p', 'Below')<CR>>']", '<silent>')
-call s:map('n', '<P', ":<C-U>call <SID>putline(v:count1 . '[p', 'Above')<CR><']", '<silent>')
-call s:map('n', '<p', ":<C-U>call <SID>putline(v:count1 . ']p', 'Below')<CR><']", '<silent>')
-call s:map('n', '=P', ":<C-U>call <SID>putline(v:count1 . '[p', 'Above')<CR>=']", '<silent>')
-call s:map('n', '=p', ":<C-U>call <SID>putline(v:count1 . ']p', 'Below')<CR>=']", '<silent>')
 
 " Section: Encoding and decoding
 
@@ -278,6 +272,16 @@ function! s:string_decode(str) abort
     let str = substitute(substitute(str,'^\s*\zs"','',''),'"\ze\s*\n\=$','','')
   endif
   return substitute(str,'\\\(\o\{1,3\}\|x\x\{1,2\}\|u\x\{1,4\}\|.\)','\=get(map,submatch(1),submatch(1) =~? "^[0-9xu]" ? nr2char("0".substitute(submatch(1),"^[Uu]","x","")) : submatch(1))','g')
+endfunction
+
+function! s:url_encode(str) abort
+  " iconv trick to convert utf-8 bytes to 8bits indiviual char.
+  return substitute(iconv(a:str, 'latin1', 'utf-8'),'[^A-Za-z0-9_.~-]','\="%".printf("%02X",char2nr(submatch(0)))','g')
+endfunction
+
+function! s:url_decode(str) abort
+  let str = substitute(substitute(substitute(a:str,'%0[Aa]\n$','%0A',''),'%0[Aa]','\n','g'),'+',' ','g')
+  return iconv(substitute(str,'%\(\x\x\)','\=nr2char("0x".submatch(1))','g'), 'utf-8', 'latin1')
 endfunction
 
 function! s:Transform(algorithm,type) abort
@@ -324,6 +328,8 @@ endfunction
 
 call UnimpairedMapTransform('string_encode','[y')
 call UnimpairedMapTransform('string_decode',']y')
+call UnimpairedMapTransform('url_encode','[u')
+call UnimpairedMapTransform('url_decode',']u')
 
 " Section: Activation
 
